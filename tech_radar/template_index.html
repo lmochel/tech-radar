@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<meta name="description" content="{{ metadata.description }}">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ metadata.title }}</title>
+<link rel="shortcut icon" href="{{ metadata.icon }}">
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://zalando.github.io/tech-radar/release/radar-0.12.js"></script>
+
+<link rel="stylesheet" href="radar.css">
+</head>
+
+<body>
+
+<svg id="radar"></svg>
+
+<script>
+const entries = {{ entries | tojson }};
+const rings = {{ rings | tojson }};
+const quadrants = {{ quadrants | tojson }};
+radar_visualization({
+  repo_url: "{{ metadata.repo_url }}",
+  title: "{{ metadata.title }}",
+  date: "{{ metadata.date }}",
+  quadrants: quadrants,
+  rings: rings,
+  entries: entries
+});
+</script>
+
+{{ html_table | safe }}
+
+</body>
+</html>
