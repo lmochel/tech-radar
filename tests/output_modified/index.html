@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=utf-8">
+<meta name="description" content="Zalando Tech Radar: a tool to visualize technology choices, inspire and support Engineering teams at Zalando to pick the best technologies for new projects">
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Zalando Tech Radar</title>
+<link rel="shortcut icon" href="https://www.zalando.de/favicon.ico">
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://zalando.github.io/tech-radar/release/radar-0.12.js"></script>
+
+<link rel="stylesheet" href="radar.css">
+</head>
+
+<body>
+
+<svg id="radar"></svg>
+
+<script>
+fetch('./config.json').then(function(response) {
+  return response.json();
+}).then(function(data) {
+  radar_visualization({
+    repo_url: "https://github.com/zalando/tech-radar",
+    title: "Zalando Tech Radar",
+    date: data.date,
+    quadrants: [
+      { name: "Languages" },
+      { name: "Infrastructure" },
+      { name: "Datastores" },
+      { name: "Data Management" },
+    ],
+    rings: [
+      { name: "ADOPT", color: "#5ba300" },
+      { name: "TRIAL", color: "#009eb0" },
+      { name: "ASSESS", color: "#c7ba00" },
+      { name: "HOLD", color: "#e09b96" }
+    ],
+    entries: data.entries
+  });
+}).catch(function(err) {
+  console.log('Error loading config.json', err);
+});
+</script>
+
+<table>
+<tr>
+<td>
+
+<div id="tech-radar-intro"></div>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script>
+fetch('tech_radar_intro.md')
+  .then(response => response.text())
+  .then(text => {
+    document.getElementById('tech-radar-intro').innerHTML = marked.parse(text);
+  });
+</script>
+
+
+</td></tr>
+</table>
+
+</body>
+</html>

@@ -10,12 +10,11 @@ def generate_config(excel_path, output_path):
     # Lire le reste du fichier (les données)
     df = pd.read_excel(excel_path, skiprows=1)
 
-    # --- 2. Conversion des colonnes Quadrant et Ring en valeurs numériques dynamiques ---
-    # Exemple : "1. Languages" → 1
-    df["quadrant_num"] = df["Quadrant"].apply(lambda x: int(str(x).split(".")[0].strip()))
+    # Conversion des colonnes Quadrant et Ring en valeurs numériques dynamiques
+    df["quadrant_num"] = df["Quadrant"].apply(lambda x: int(str(x).split(".")[0].strip())-1)
     df["ring_num"] = df["Ring"].apply(lambda x: int(str(x).split(".")[0].strip()))
 
-    # --- 3. Mapping texte Status → moved numérique ---
+    # Mapping texte Status → moved numérique
     status_to_moved = {
         "Moved out (▼)": -1,
         "No change (●)": 0,
@@ -23,28 +22,34 @@ def generate_config(excel_path, output_path):
         "New (*)": 2
     }
 
-    # --- 4. Construction des entries ---
+    # Construction des entries
     entries = []
     for _, row in df.iterrows():
-        moved_value = status_to_moved.get(str(row["Status"]).strip(), 0)  # fallback à 0
+        moved_value = status_to_moved.get(str(row["Status"]).strip(), 0)
+
+        # Construire l'entrée avec link juste après label
         entry = {
             "quadrant": row["quadrant_num"],
             "ring": row["ring_num"],
             "label": row["Label"],
+            "link": row["Link"] if pd.notna(row.get("Link")) else None,
             "active": True if row["Active"] == "X" else False,
             "moved": moved_value
         }
-        if pd.notna(row.get("Link")):
-            entry["link"] = row["Link"]
+
+        # Si link est None, on peut la supprimer pour garder le JSON propre
+        if entry["link"] is None:
+            entry.pop("link")
+
         entries.append(entry)
 
-    # --- 5. Générer le JSON final ---
+    # Générer le JSON final
     config_json = {
         "date": date_value,
         "entries": entries
     }
 
-    # --- 6. Écrire le fichier config.json ---
+    # Écrire le fichier config.json
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(config_json, f, indent=2, ensure_ascii=False)
 
@@ -52,6 +57,6 @@ def generate_config(excel_path, output_path):
 
 if __name__ == "__main__":
     generate_config(
-        excel_path = r"tests\input\tech_radar.xlsx",
+        excel_path=r"tests\input\tech_radar.xlsx",
         output_path="config_generated_from_excel.json"
     )
