@@ -1,35 +1,7 @@
-import os
 import pandas as pd
 from openpyxl import load_workbook
-from openpyxl.styles import Color
-from jinja2 import Environment, FileSystemLoader
 import re
-import markdown
 
-
-def markdown_to_html_table(md_file_path):
-    """
-    Convertit un fichier Markdown en HTML avec une table à une ligne et deux colonnes.
-    Utilise '---' comme séparateur entre les colonnes.
-    """
-    # Lire le contenu du fichier Markdown
-    with open(md_file_path, "r", encoding="utf-8") as f:
-        md_content = f.read()
-
-    # Séparer en colonnes à partir du séparateur visuel '---'
-    # On suppose que chaque '---' correspond à un passage à la colonne suivante
-    columns_md = md_content.split('---')
-
-    # Convertir chaque bloc Markdown en HTML
-    columns_html = [markdown.markdown(col.strip()) for col in columns_md]
-
-    # Construire la table HTML
-    table_html = "<table>\n<tr>\n"
-    for col_html in columns_html:
-        table_html += f"<td>\n{col_html}\n</td>\n"
-    table_html += "</tr>\n</table>"
-
-    return table_html
 
 def clean_field_name(name: str) -> str:
     """
@@ -241,58 +213,3 @@ def generate_tech_radar_data(excel_path):
     
     return data
 
-# ---------- Generate HTML ----------
-def generate_index_html(md_file, excel_path, template_path, output_path, css_path=None):
-    """
-    Génère la page index.html du Tech Radar à partir :
-      - du fichier Markdown (description)
-      - du fichier Excel (données)
-      - du template HTML Jinja2
-      - du fichier CSS (optionnel, inline si trouvé)
-
-    Si css_path est fourni et le fichier existe, le CSS est injecté directement dans la page.
-    """
-
-    # Charger le template
-    template_dir = os.path.dirname(template_path)
-    template_file = os.path.basename(template_path)
-    env = Environment(loader=FileSystemLoader(template_dir))
-    template = env.get_template(template_file)
-
-    # --- Générer les données du radar ---
-    data = generate_tech_radar_data(excel_path)
-
-    # --- Convertir le markdown en HTML table ---
-    html_table = markdown_to_html_table(md_file)
-
-    # --- Charger le CSS s'il existe ---
-    css_content = None
-    if css_path and os.path.exists(css_path):
-        with open(css_path, "r", encoding="utf-8") as f:
-            css_content = f.read()
-
-    # --- Rendu final ---
-    rendered_html = template.render(
-        metadata=data["metadata"],
-        quadrants=data["quadrants"],
-        rings=data["rings"],
-        entries=data["entries"],
-        html_table=html_table,
-        css=css_content
-    )
-
-    # --- Sauvegarde du fichier ---
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(rendered_html)
-
-    print(f"✅ index.html généré : {output_path}")
-
-
-class TechRadarBuilder:
-
-    def __init__(self, excel_path, markdown_path):
-        self.excel = excel_path
-        self.markdown = markdown_path
-
-    

@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tech-radar-builder"
+version = "0.1.0"
+description = "Outil CLI pour construire des radars technologiques depuis Excel/Markdown."
+authors = [
+  { name = "Loïc Mochel", email = "loic.mochel@netc.fr" }
+]
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.9"
+dependencies = [
+  "jinja2",
+  "pandas",
+  "openpyxl",
+  "rich",
+  "click"
+]
+
+[project.scripts]
+radar = "tech_radar_builder.cli:main"
