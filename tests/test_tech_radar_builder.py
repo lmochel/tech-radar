@@ -1,4 +1,4 @@
-from tech_radar import generate_rings_from_excel
+from tech_radar_builder.radar_builder import generate_rings_from_excel
 
 def test_generate_rings_from_excel():
     assert generate_rings_from_excel(r"tests\input\tech_radar.xlsx") == \
