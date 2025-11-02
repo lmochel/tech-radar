@@ -1,6 +1,6 @@
 import click
 from rich.console import Console
-from .builder import init_project, add_radar
+from .radar import init_project, add_radar
 
 console = Console()
 
