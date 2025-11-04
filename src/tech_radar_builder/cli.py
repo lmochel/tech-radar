@@ -54,7 +54,7 @@ def remove(name: str, delete_inputs: bool = typer.Option(False, help="Supprime a
 @app.command()
 def serve(name: str, port: int = 8000):
     """Lance un serveur local pour visualiser un radar."""
-    from tech_radar_builder.utils.server import serve_html
+    from tech_radar_builder.core.utils.server import serve_html
 
     radar = radars.get(name)
     if not radar:
