@@ -78,7 +78,7 @@ radar refresh mon_radar
 radar serve mon_radar
 ```
 
-###Utilisation en python
+### Utilisation en python
 
 ```python
 from tech_radar_builder import radars
