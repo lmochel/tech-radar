@@ -1,7 +1,7 @@
 from pathlib import Path
 from rich.console import Console
-from .utils.radar_generator import build_radar
-from .utils.server import serve_html
+from tech_radar_builder.core.utils.radar_generator import build_radar
+from tech_radar_builder.core.utils.server import serve_html
 import time
 
 console = Console()

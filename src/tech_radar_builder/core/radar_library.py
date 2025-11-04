@@ -5,17 +5,25 @@ import subprocess
 import shutil
 import importlib.resources as pkg_resources
 from rich.console import Console
-from .radar import TechRadar
-from .utils.paths import get_default_app_dir
-from . import examples  # contient zalando.md, generic.md, etc.
-from . import templates  # contient radar.html.j2 et radar.css
-import platform
+from tech_radar_builder.core.radar import TechRadar
+from tech_radar_builder.core.utils.paths import get_default_app_dir
+from tech_radar_builder import examples  # contient zalando.md, generic.md, etc.
+from tech_radar_builder import templates  # contient radar.html.j2 et radar.css
 
 console = Console()
 
 
+def copy_example(example_name: str, dest_dir: Path):
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    for filename in [f"{example_name}.md", f"{example_name}.xlsx"]:
+        source = pkg_resources.files(examples) / filename
+        dest = dest_dir / filename
+        if not dest.exists():
+            with source.open("rb") as src_file, open(dest, "wb") as dst_file:
+                shutil.copyfileobj(src_file, dst_file)
+
+
 def copy_default_templates(dest_dir: Path):
-    """Copie radar.html.j2 et radar.css depuis le package vers le répertoire de l'application."""
     dest_dir.mkdir(parents=True, exist_ok=True)
     for filename in ["radar.html.j2", "radar.css"]:
         source = pkg_resources.files(templates) / filename
@@ -26,60 +34,102 @@ def copy_default_templates(dest_dir: Path):
 
 
 class RadarLibrary:
-    """Gestion d'une bibliothèque de radars via config_radars.ini."""
+    """Gestion de la bibliothèque de radars et initialisation de l’application."""
 
     def __init__(self, app_dir: str | Path | None = None):
+        """Ne crée pas les répertoires, mais prépare les chemins essentiels."""
         self.app_dir = Path(app_dir) if app_dir else get_default_app_dir()
-        self.app_dir.mkdir(parents=True, exist_ok=True)
-        self.cache_path = self.app_dir / "config_radars.ini"
 
+        # chemins internes
         self.input_dir = self.app_dir / "input"
         self.radar_dir = self.app_dir / "radar"
         self.templates_dir = self.app_dir / "templates"
+        self.config_path = self.app_dir / "config_radars.ini"
+
+        # Config
+        self.config = configparser.ConfigParser()
+        self.config.optionxform = str  # conserve la casse
+
+        # Charger la config existante si elle existe
+        if self.config_path.exists():
+            self.config.read(self.config_path, encoding="utf-8")
+
+    # ------------------------------------------------------------------
+    # INITIALISATION COMPLÈTE
+    # ------------------------------------------------------------------
+    def init_app(self):
+        """Crée la structure de l’application et initialise le radar exemple si nécessaire."""
+        console.print("[dim]Initialisation du répertoire de l'application...[/dim]")
 
         self.input_dir.mkdir(parents=True, exist_ok=True)
         self.radar_dir.mkdir(parents=True, exist_ok=True)
         self.templates_dir.mkdir(parents=True, exist_ok=True)
 
-        self.config = configparser.ConfigParser()
-        self.config.optionxform = str
-        self._load_or_create()
-
-    def _load_or_create(self):
-        """Charge le fichier INI ou crée un radar Zalando opérationnel si absent."""
+        # Copier les templates de base
         copy_default_templates(self.templates_dir)
 
-        md_path = self.input_dir / "zalando.md"
-        excel_path = self.input_dir / "zalando.xlsx"
-        template_path = self.templates_dir / "radar.html.j2"
-        css_path = self.templates_dir / "radar.css"
-        output_path = self.radar_dir / "zalando_radar.html"
+        # Copier le radar exemple "zalando" si aucun fichier config n’existe
+        if not self.config_path.exists():
+            console.print("[dim]Création du radar d'exemple Zalando...[/dim]")
+            copy_example("zalando", self.input_dir)
 
-        # Copier exemples Zalando uniquement si les fichiers n'existent pas
-        examples_dir = pkg_resources.files(examples)
-        for f in ["zalando.md", "zalando.xlsx"]:
-            dest = self.input_dir / f
-            if not dest.exists():
-                src = examples_dir / f
-                with src.open("rb") as src_file, open(dest, "wb") as dst_file:
-                    shutil.copyfileobj(src_file, dst_file)
+            md_path = self.input_dir / "zalando.md"
+            excel_path = self.input_dir / "zalando.xlsx"
+            template_path = self.templates_dir / "radar.html.j2"
+            css_path = self.templates_dir / "radar.css"
+            output_path = self.radar_dir / "zalando_radar.html"
 
-        if not self.cache_path.exists():
-            console.print("[dim]Création du fichier de configuration et du radar Zalando exemple.[/dim]")
             self.config["zalando"] = {
                 "md_file_path": str(md_path),
                 "excel_path": str(excel_path),
                 "output_radar_path": str(output_path),
                 "template_radar_path": str(template_path),
-                "css_path": str(css_path)
+                "css_path": str(css_path),
             }
             self._save()
+            console.print("[green]✅ Application initialisée avec le radar Zalando d'exemple.[/green]")
         else:
-            self.config.read(self.cache_path, encoding="utf-8")
+            console.print("[yellow]⚠️ Le fichier de configuration existe déjà, aucune réécriture effectuée.[/yellow]")
 
+    # ------------------------------------------------------------------
+    # GESTION CONFIG
+    # ------------------------------------------------------------------
     def _save(self):
-        with open(self.cache_path, "w", encoding="utf-8") as f:
+        with open(self.config_path, "w", encoding="utf-8") as f:
             self.config.write(f)
+
+    # ------------------------------------------------------------------
+    # FONCTIONS UTILITAIRES
+    # ------------------------------------------------------------------
+    def open_config(self):
+        """Ouvre le fichier config_radars.ini avec l’éditeur par défaut."""
+        if not self.config_path.exists():
+            console.print("[red]Aucune configuration trouvée. Exécutez `radar init` d'abord.[/red]")
+            return
+
+        path = str(self.config_path)
+        try:
+            if os.name == "nt":
+                os.startfile(path)
+            elif os.name == "Darwin":
+                subprocess.run(["open", path])
+            else:
+                subprocess.run(["xdg-open", path])
+        except Exception as e:
+            console.print(f"[red]Erreur : impossible d’ouvrir le fichier de config : {e}[/red]")
+
+    def open_app_dir(self):
+        """Ouvre le dossier principal de l'application."""
+        try:
+            path = str(self.app_dir)
+            if os.name == "nt":
+                os.startfile(path)
+            elif os.name == "Darwin":
+                subprocess.run(["open", path])
+            else:
+                subprocess.run(["xdg-open", path])
+        except Exception as e:
+            console.print(f"[red]Erreur : impossible d’ouvrir le répertoire de l'application : {e}[/red]")
 
     # --- Méthodes radar ---
     def new(
@@ -184,7 +234,6 @@ class RadarLibrary:
             css_path=data.get("css_path") or None,
         )
 
-    # --- Utilitaires ---
     def list(self):
         """Affiche tous les radars enregistrés dans le cache."""
         sections = self.config.sections()
@@ -197,32 +246,6 @@ class RadarLibrary:
             data = self.config[section]
             output_path = data.get("output_radar_path", "—")
             console.print(f" - [bold]{section}[/bold] → {output_path}")
-
-    def open_config(self):
-        """Ouvre le fichier config_radars.ini avec l'éditeur par défaut."""
-        path = str(self.cache_path)
-        try:
-            if os.name == "nt":
-                os.startfile(path)
-            elif platform.system() == "Darwin":
-                subprocess.run(["open", path])
-            else:
-                subprocess.run(["xdg-open", path])
-        except Exception as e:
-            console.print(f"[red]Impossible d'ouvrir le fichier de config : {e}[/red]")
-
-    def open_cache(self):
-        """Ouvre le répertoire de l'application dans l'explorateur de fichiers."""
-        try:
-            path = str(self.app_dir)
-            if os.name == "nt":
-                os.startfile(path)
-            elif platform.system() == "Darwin":
-                subprocess.run(["open", path])
-            else:
-                subprocess.run(["xdg-open", path])
-        except Exception as e:
-            console.print(f"[red]Impossible d'ouvrir le répertoire de l'application : {e}[/red]")
 
     def reset(self, config_only: bool = True):
         """Réinitialise le répertoire de l'application, avec option config_only."""
