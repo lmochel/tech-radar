@@ -5,7 +5,7 @@ tech_radar_builder
 Un outil pour construire et gérer des Tech Radars depuis des fichiers Excel et Markdown.
 """
 
-from .core.radar_library import RadarLibrary
+from tech_radar_builder.core.radar_library import RadarLibrary
 
 # Instance unique (type singleton léger)
 radars = RadarLibrary()
